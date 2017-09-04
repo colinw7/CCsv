@@ -17,31 +17,29 @@ load(const QString &filename)
   // parse file into array of fields
   CCsv csv(filename_.toStdString());
 
-  csv.setSkipComments(false);
+  csv.setCommentHeader  (isCommentHeader());
+  csv.setFirstLineHeader(isFirstLineHeader());
 
-  CCsv::FieldsArray fieldsArray;
+  if (! csv.load())
+    return false;
 
-  csv.getFields(fieldsArray);
+  const CCsv::Fields &header = csv.header();
+
+  const CCsv::Data &data = csv.data();
 
   //---
 
   // add fields to model
   numColumns_ = 0;
 
-  bool columnHeaders = hasColumnHeaders();
+  if (! header.empty()) {
+    for (const auto &f : header)
+      header_.push_back(f.c_str());
 
-  for (const auto &fields : fieldsArray) {
-    if (columnHeaders) {
-      for (const auto &f : fields)
-        header_.push_back(f.c_str());
+    numColumns_ = std::max(numColumns_, int(header_.size()));
+  }
 
-      columnHeaders = false;
-
-      numColumns_ = std::max(numColumns_, int(header_.size()));
-
-      continue;
-    }
-
+  for (const auto &fields : data) {
     Cells cells;
 
     for (const auto &f : fields)

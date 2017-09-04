@@ -7,8 +7,9 @@ main(int argc, char **argv)
 {
   std::string filename;
   std::string columns;
-  bool        skipFirst = false;
-  bool        quote     = false;
+  bool        commentHeader   = false;
+  bool        firstLineHeader = false;
+  bool        quote           = false;
 
   for (auto i = 1; i < argc; ++i) {
     if (argv[i][0] == '-') {
@@ -18,8 +19,10 @@ main(int argc, char **argv)
         if (i < argc - 1)
           columns = argv[++i];
       }
-      else if (arg == "skip_first")
-        skipFirst = true;
+      else if (arg == "comment_header")
+        commentHeader = true;
+      else if (arg == "first_line_header")
+        firstLineHeader = true;
       else if (arg == "quote")
         quote = true;
       else
@@ -30,13 +33,15 @@ main(int argc, char **argv)
   }
 
   if (filename == "") {
-    std::cerr << "CCsvTest [-columns <inds>] [-skip_first] [-quote] <filename>" << std::endl;
+    std::cerr << "CCsvTest [-columns <inds>] [-comment_header|-first_line_header] [-quote] "
+                 "<filename>" << std::endl;
     exit(1);
   }
 
   CCsv csv(filename);
 
-  csv.setSkipFirst(skipFirst);
+  csv.setCommentHeader  (commentHeader);
+  csv.setFirstLineHeader(firstLineHeader);
 
   CCsv::Inds inds;
 
@@ -49,7 +54,7 @@ main(int argc, char **argv)
       inds.push_back(stoi(w));
   }
 
-  CCsv::FieldsArray fieldsArray;
+  CCsv::Data fieldsArray;
 
   csv.getFields(inds, fieldsArray);
 

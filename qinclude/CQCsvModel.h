@@ -6,13 +6,17 @@
 class CQCsvModel : public QAbstractItemModel {
   Q_OBJECT
 
-  Q_PROPERTY(bool columnHeaders READ hasColumnHeaders WRITE setColumnHeaders)
+  Q_PROPERTY(bool commentHeader   READ isCommentHeader   WRITE setCommentHeader  )
+  Q_PROPERTY(bool firstLineHeader READ isFirstLineHeader WRITE setFirstLineHeader)
 
  public:
   CQCsvModel();
 
-  bool hasColumnHeaders() const { return columnHeaders_; }
-  void setColumnHeaders(bool b) { columnHeaders_ = b; }
+  bool isCommentHeader() const { return commentHeader_; }
+  void setCommentHeader(bool b) { commentHeader_ = b; }
+
+  bool isFirstLineHeader() const { return firstLineHeader_; }
+  void setFirstLineHeader(bool b) { firstLineHeader_ = b; }
 
   bool load(const QString &filename);
 
@@ -34,7 +38,8 @@ class CQCsvModel : public QAbstractItemModel {
   typedef std::vector<Cells>   Data;
 
   QString filename_;
-  bool    columnHeaders_ { false };
+  bool    commentHeader_   { false };
+  bool    firstLineHeader_ { false };
   int     numColumns_ { 0 };
   Cells   header_;
   Data    data_;

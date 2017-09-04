@@ -10,42 +10,79 @@ class CCsv {
  public:
   typedef std::vector<int>         Inds;
   typedef std::vector<std::string> Fields;
-  typedef std::vector<Fields>      FieldsArray;
+  typedef std::vector<Fields>      Data;
 
  public:
   CCsv(const std::string &filename) :
    filename_(filename) {
   }
 
-  bool isSkipFirst() const { return skipFirst_; }
-  void setSkipFirst(bool b) { skipFirst_ = b; }
+  const std::string &filename() const { return filename_; }
 
-  bool isSkipComments() const { return skipComments_; }
-  void setSkipComments(bool b) { skipComments_ = b; }
+  const Fields &header() const { return header_; }
 
-  template<typename FUNC>
-  bool load(const FUNC &func) {
+  const Data &data() const { return data_; }
+
+  bool isCommentHeader() const { return commentHeader_; }
+  void setCommentHeader(bool b) { commentHeader_ = b; }
+
+  bool isFirstLineHeader() const { return firstLineHeader_; }
+  void setFirstLineHeader(bool b) { firstLineHeader_ = b; }
+
+  bool load() {
+    bool commentHeader   = isCommentHeader  ();
+    bool firstLineHeader = isFirstLineHeader();
+
+    data_.clear();
+
     if (! open())
       return false;
 
     std::string line;
 
-    if (isSkipFirst())
-      (void) readLine(line);
-
     while (readLine(line)) {
+      if (line.empty())
+        continue;
+
+      std::string comment;
+
+      if (isComment(line, comment)) {
+        if (commentHeader) {
+          Fields strs;
+
+          if (! stringToFields(comment, strs))
+            continue;
+
+          header_ = strs;
+
+          commentHeader   = false;
+          firstLineHeader = false;
+        }
+
+        continue;
+      }
+
+      //---
+
       Fields strs;
 
-      if (! readLineStrings(line, strs))
+      if (! stringToFields(line, strs))
         continue;
 
       //---
 
-      try {
-        func(strs);
-      } catch (...) {
+      if (firstLineHeader) {
+        header_ = strs;
+
+        commentHeader   = false;
+        firstLineHeader = false;
+
         continue;
       }
+
+      //---
+
+      data_.push_back(strs);
     }
 
     close();
@@ -53,51 +90,40 @@ class CCsv {
     return true;
   }
 
-  bool getFields(const Inds &inds, FieldsArray &fieldsArray) {
-    if (! open())
+  bool getFields(const Inds &inds, Data &data) {
+    if (! load())
       return false;
 
-    std::string line;
-
-    if (isSkipFirst())
-      (void) readLine(line);
-
-    while (readLine(line)) {
-      Fields strs;
-
-      if (! readLineStrings(line, strs))
-        continue;
-
-      //---
-
-      Fields fields;
+    for (const auto &fields : data_) {
+      Fields fields1;
 
       if (! inds.empty()) {
         for (uint i = 0; i < inds.size(); ++i) {
           int ind = inds[i];
 
-          if (ind >= 1 && ind <= int(strs.size()))
-            fields.push_back(strs[ind - 1]);
+          if (ind >= 1 && ind <= int(fields.size()))
+            fields1.push_back(fields[ind - 1]);
           else
-            fields.push_back("");
+            fields1.push_back("");
         }
       }
       else {
-        fields = strs;
+        fields1 = fields;
       }
 
-      fieldsArray.push_back(fields);
+      data.push_back(fields1);
     }
-
-    close();
 
     return true;
   }
 
-  bool getFields(FieldsArray &fieldsArray) {
-    Inds inds;
+  bool getFields(Data &data) {
+    if (! load())
+      return false;
 
-    return getFields(inds, fieldsArray);
+    data = data_;
+
+    return true;
   }
 
  private:
@@ -113,6 +139,23 @@ class CCsv {
       fclose(fp_);
 
     fp_ = 0;
+  }
+
+  bool isComment(const std::string &line, std::string &comment) {
+    int i = 0;
+
+    skipSpace(line, i);
+
+    if (line[i] != '#')
+      return false;
+
+    ++i;
+
+    skipSpace(line, i);
+
+    comment = line.substr(i);
+
+    return true;
   }
 
   bool readLine(std::string &line) {
@@ -134,7 +177,7 @@ class CCsv {
     return true;
   }
 
-  bool readLineStrings(std::string &line, Fields &strs) {
+  bool stringToFields(std::string &line, Fields &strs) {
     std::vector<Fields> strsArray;
 
     bool terminated = true;
@@ -142,7 +185,7 @@ class CCsv {
     while (true) {
       Fields strs1;
 
-      if (! stringToFields(line, strs1, terminated))
+      if (! stringToSubFields(line, strs1, terminated))
         return false;
 
       strsArray.push_back(strs1);
@@ -183,18 +226,13 @@ class CCsv {
     return true;
   }
 
-  bool stringToFields(const std::string &str, Fields &strs, bool &terminated) {
+  bool stringToSubFields(const std::string &str, Fields &strs, bool &terminated) {
     static char sep    = ',';
     static char dquote = '\"';
 
     str_ = str;
     len_ = str_.size();
     pos_ = 0;
-
-    if (terminated) {
-      if (isSkipComments() && isCommentLine())
-        return false;
-    }
 
     while (pos_ < len_) {
       std::string str1;
@@ -235,18 +273,6 @@ class CCsv {
     return true;
   }
 
-  bool isCommentLine() {
-    // skip space
-    skipSpace();
-
-    return (pos_ < len_ && str_[pos_] == '#');
-  }
-
-  void skipSpace() {
-    while (pos_ < len_ && isspace(str_[pos_]))
-      ++pos_;
-  }
-
   bool parseString(std::string &str) {
     static char dquote = '\"';
 
@@ -273,14 +299,23 @@ class CCsv {
     return terminated;
   }
 
+  void skipSpace(const std::string &str, int &i) {
+    int len = str.size();
+
+    while (i < len && isspace(str[i]))
+      ++i;
+  }
+
  private:
   std::string         filename_;
-  bool                skipFirst_    { false };
-  bool                skipComments_ { true };
-  mutable FILE*       fp_           { 0 };
+  Fields              header_;
+  Data                data_;
+  bool                commentHeader_   { true };
+  bool                firstLineHeader_ { false };
+  mutable FILE*       fp_              { 0 };
   mutable std::string str_;
-  mutable int         len_          { 0 };
-  mutable int         pos_          { 0 };
+  mutable int         len_             { 0 };
+  mutable int         pos_             { 0 };
 };
 
 #endif
