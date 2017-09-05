@@ -88,12 +88,15 @@ data(const QModelIndex &index, int role) const
     return QVariant();
 
   if (role == Qt::DisplayRole) {
+    if (index.row() >= int(data_.size()))
+      return QVariant();
+
     const Cells &cells = data_[index.row()];
 
-    if (index.column() < int(cells.size()))
-      return QString(cells[index.column()]);
-    else
+    if (index.column() >= int(cells.size()))
       return QVariant();
+
+    return QString(cells[index.column()]);
   }
   else
     return QVariant();
