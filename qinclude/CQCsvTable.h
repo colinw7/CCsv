@@ -4,6 +4,7 @@
 #include <QTableView>
 
 class CQCsvModel;
+class CQHeaderView;
 
 class CQCsvTable : public QTableView {
   Q_OBJECT
@@ -14,7 +15,8 @@ class CQCsvTable : public QTableView {
   void setModel(CQCsvModel *model);
 
  private:
-  CQCsvModel *model_ { nullptr };
+  CQCsvModel*   model_  { nullptr };
+  CQHeaderView* header_ { nullptr };
 };
 
 #endif
