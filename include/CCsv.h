@@ -29,6 +29,12 @@ class CCsv {
   bool isFirstLineHeader() const { return firstLineHeader_; }
   void setFirstLineHeader(bool b) { firstLineHeader_ = b; }
 
+  bool isAllowComments() const { return allowComments_; }
+  void setAllowComments(bool b) { allowComments_ = b; }
+
+  const char &separator() const { return separator_; }
+  void setSeparator(const char &c) { separator_ = c; }
+
   bool load() {
     bool commentHeader   = isCommentHeader  ();
     bool firstLineHeader = isFirstLineHeader();
@@ -59,7 +65,8 @@ class CCsv {
           firstLineHeader = false;
         }
 
-        continue;
+        if (isAllowComments())
+          continue;
       }
 
       //---
@@ -232,7 +239,6 @@ class CCsv {
   }
 
   bool stringToSubFields(const std::string &str, Fields &strs, bool &terminated) {
-    static char sep    = ',';
     static char dquote = '\"';
 
     str_ = str;
@@ -242,7 +248,7 @@ class CCsv {
     while (pos_ < len_) {
       std::string str1;
 
-      while (pos_ < len_ && str_[pos_] != sep) {
+      while (pos_ < len_ && str_[pos_] != separator_) {
         if (! terminated || str_[pos_] == dquote) {
           if (terminated)
             ++pos_;
@@ -258,7 +264,7 @@ class CCsv {
           // skip to field separator
           int j = pos_;
 
-          while (pos_ < len_ && str_[pos_] != sep)
+          while (pos_ < len_ && str_[pos_] != separator_)
             ++pos_;
 
           str1 += str_.substr(j, pos_ - j);
@@ -268,7 +274,7 @@ class CCsv {
       }
 
       // skip field separator
-      if (pos_ < len_ && str_[pos_] == sep)
+      if (pos_ < len_ && str_[pos_] == separator_)
         ++pos_;
 
       // add to return list
@@ -317,6 +323,8 @@ class CCsv {
   Data                data_;
   bool                commentHeader_   { true };
   bool                firstLineHeader_ { false };
+  bool                allowComments_   { true };
+  char                separator_       { ',' };
   mutable FILE*       fp_              { 0 };
   mutable std::string str_;
   mutable int         len_             { 0 };
