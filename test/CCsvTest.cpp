@@ -9,6 +9,8 @@ main(int argc, char **argv)
   std::string columns;
   bool        commentHeader   = false;
   bool        firstLineHeader = false;
+  bool        allowComments   = false;
+  char        separator       = ',';
   bool        quote           = false;
 
   for (auto i = 1; i < argc; ++i) {
@@ -23,6 +25,12 @@ main(int argc, char **argv)
         commentHeader = true;
       else if (arg == "first_line_header")
         firstLineHeader = true;
+      else if (arg == "allow_comments")
+        allowComments = true;
+      else if (arg == "separator") {
+        if (i < argc - 1)
+          separator = argv[++i][0];
+      }
       else if (arg == "quote")
         quote = true;
       else
@@ -42,6 +50,8 @@ main(int argc, char **argv)
 
   csv.setCommentHeader  (commentHeader);
   csv.setFirstLineHeader(firstLineHeader);
+  csv.setAllowComments  (allowComments);
+  csv.setSeparator      (separator);
 
   CCsv::Inds inds;
 
@@ -52,6 +62,40 @@ main(int argc, char **argv)
 
     for (const auto &w : words)
       inds.push_back(stoi(w));
+  }
+
+  if (! csv.load()) {
+    std::cerr << "Failed to load '" << filename << "'\n";
+    exit(1);
+  }
+
+  const CCsv::Fields &header = csv.header();
+
+  if (! header.empty()) {
+    bool first = true;
+
+    std::string headerStr;
+
+    for (const auto &field : header) {
+      if (! first)
+        headerStr += "|";
+
+      if (quote)
+        headerStr += "\"" + field + "\"";
+      else
+        headerStr += field;
+
+      first = false;
+    }
+
+    std::cout << headerStr << "\n";
+
+    int headerLen = headerStr.size();
+
+    for (int i = 0; i < headerLen; ++i)
+      std::cout << "-";
+
+    std::cout << "\n";
   }
 
   CCsv::Data fieldsArray;
@@ -73,7 +117,7 @@ main(int argc, char **argv)
       first = false;
     }
 
-    std::cout << std::endl;
+    std::cout << "\n";
   }
 
   exit(0);

@@ -19,9 +19,9 @@ class CCsv {
 
   const std::string &filename() const { return filename_; }
 
-  const Fields &header() const { return header_; }
+  const Fields &header() const { assert(loaded_); return header_; }
 
-  const Data &data() const { return data_; }
+  const Data &data() const { assert(loaded_); return data_; }
 
   bool isCommentHeader() const { return commentHeader_; }
   void setCommentHeader(bool b) { commentHeader_ = b; }
@@ -36,13 +36,22 @@ class CCsv {
   void setSeparator(const char &c) { separator_ = c; }
 
   bool load() {
+    if (loaded_)
+      return loadRc_;
+
+    loaded_ = true;
+    loadRc_ = false;
+
+    //---
+
     bool commentHeader   = isCommentHeader  ();
     bool firstLineHeader = isFirstLineHeader();
+    bool allowComments   = isAllowComments  ();
 
     data_.clear();
 
     if (! open())
-      return false;
+      return loadRc_;
 
     std::string line;
 
@@ -63,10 +72,13 @@ class CCsv {
 
           commentHeader   = false;
           firstLineHeader = false;
-        }
 
-        if (isAllowComments())
           continue;
+        }
+        else {
+          if (allowComments)
+            continue;
+        }
       }
 
       //---
@@ -94,7 +106,9 @@ class CCsv {
 
     close();
 
-    return true;
+    loadRc_ = true;
+
+    return loadRc_;
   }
 
   bool getFields(const Inds &inds, Data &data) {
@@ -319,6 +333,8 @@ class CCsv {
 
  private:
   std::string         filename_;
+  bool                loaded_          { false };
+  bool                loadRc_          { false };
   Fields              header_;
   Data                data_;
   bool                commentHeader_   { true };
