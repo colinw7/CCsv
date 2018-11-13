@@ -12,6 +12,12 @@ class CCsv {
   typedef std::vector<std::string> Fields;
   typedef std::vector<Fields>      Data;
 
+  enum CommentType {
+    NONE,
+    META_START,
+    META_END
+  };
+
  public:
   CCsv(const std::string &filename) :
    filename_(filename) {
@@ -22,6 +28,10 @@ class CCsv {
   const Fields &header() const { assert(loaded_); return header_; }
 
   const Data &data() const { assert(loaded_); return data_; }
+
+  bool hasMeta() const { return ! meta_.empty(); }
+
+  const Data &meta() const { assert(loaded_); return meta_; }
 
   bool isCommentHeader() const { return commentHeader_; }
   void setCommentHeader(bool b) { commentHeader_ = b; }
@@ -60,24 +70,45 @@ class CCsv {
         continue;
 
       std::string comment;
+      CommentType commentType { CommentType::NONE };
 
-      if (isComment(line, comment)) {
-        if (commentHeader) {
+      if (isComment(line, comment, commentType)) {
+        if      (commentType == CommentType::META_START) {
+          inMeta_ = true;
+          continue;
+        }
+        else if (commentType == CommentType::META_END) {
+          inMeta_ = false;
+          continue;
+        }
+        else if (inMeta_) {
           Fields strs;
 
           if (! stringToFields(comment, strs))
             continue;
 
-          header_ = strs;
-
-          commentHeader   = false;
-          firstLineHeader = false;
+          meta_.push_back(strs);
 
           continue;
         }
         else {
-          if (allowComments)
+          if (commentHeader) {
+            Fields strs;
+
+            if (! stringToFields(comment, strs))
+              continue;
+
+            header_ = strs;
+
+            commentHeader   = false;
+            firstLineHeader = false;
+
             continue;
+          }
+          else {
+            if (allowComments)
+              continue;
+          }
         }
       }
 
@@ -162,7 +193,7 @@ class CCsv {
     fp_ = 0;
   }
 
-  bool isComment(const std::string &line, std::string &comment) {
+  bool isComment(const std::string &line, std::string &comment, CommentType &type) {
     int i = 0;
 
     skipSpace(line, i);
@@ -175,6 +206,11 @@ class CCsv {
     skipSpace(line, i);
 
     comment = line.substr(i);
+
+    if      (comment == "META_DATA")
+      type = CommentType::META_START;
+    else if (comment == "END_META_DATA")
+      type = CommentType::META_END;
 
     return true;
   }
@@ -337,9 +373,11 @@ class CCsv {
   bool                loadRc_          { false };
   Fields              header_;
   Data                data_;
+  Data                meta_;
   bool                commentHeader_   { true };
   bool                firstLineHeader_ { false };
   bool                allowComments_   { true };
+  bool                inMeta_          { false };
   char                separator_       { ',' };
   mutable FILE*       fp_              { 0 };
   mutable std::string str_;

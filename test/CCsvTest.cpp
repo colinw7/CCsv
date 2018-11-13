@@ -9,7 +9,7 @@ main(int argc, char **argv)
   std::string columns;
   bool        commentHeader   = false;
   bool        firstLineHeader = false;
-  bool        allowComments   = false;
+  bool        allowComments   = true;
   char        separator       = ',';
   bool        quote           = false;
 
@@ -27,6 +27,8 @@ main(int argc, char **argv)
         firstLineHeader = true;
       else if (arg == "allow_comments")
         allowComments = true;
+      else if (arg == "no_allow_comments")
+        allowComments = false;
       else if (arg == "separator") {
         if (i < argc - 1)
           separator = argv[++i][0];
@@ -41,10 +43,13 @@ main(int argc, char **argv)
   }
 
   if (filename == "") {
-    std::cerr << "CCsvTest [-columns <inds>] [-comment_header|-first_line_header] [-quote] "
+    std::cerr << "CCsvTest [-columns <inds>] [-comment_header|-first_line_header] "
+                 "[-allow_comments|-no_allow_comments] [-separator <char>] [-quote] "
                  "<filename>" << std::endl;
     exit(1);
   }
+
+  //---
 
   CCsv csv(filename);
 
@@ -64,10 +69,14 @@ main(int argc, char **argv)
       inds.push_back(stoi(w));
   }
 
+  //---
+
   if (! csv.load()) {
     std::cerr << "Failed to load '" << filename << "'\n";
     exit(1);
   }
+
+  //---
 
   const CCsv::Fields &header = csv.header();
 
@@ -98,6 +107,8 @@ main(int argc, char **argv)
     std::cout << "\n";
   }
 
+  //---
+
   CCsv::Data fieldsArray;
 
   csv.getFields(inds, fieldsArray);
@@ -119,6 +130,32 @@ main(int argc, char **argv)
 
     std::cout << "\n";
   }
+
+  //---
+
+  if (csv.hasMeta()) {
+    std::cout << "-- META --\n";
+
+    for (const auto &fields : csv.meta()) {
+      bool first = true;
+
+      for (const auto &field : fields) {
+        if (! first)
+          std::cout << "|";
+
+        if (quote)
+          std::cout << "\"" << field << "\"";
+        else
+          std::cout << field;
+
+        first = false;
+      }
+
+      std::cout << "\n";
+    }
+  }
+
+  //---
 
   exit(0);
 }
