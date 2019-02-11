@@ -6,6 +6,9 @@
 #include <vector>
 #include <cassert>
 
+/*!
+ * \brief Load CSV file
+ */
 class CCsv {
  public:
   typedef std::vector<int>         Inds;
@@ -86,6 +89,8 @@ class CCsv {
 
           if (! stringToFields(comment, strs))
             continue;
+
+          // TODO: skip first line
 
           meta_.push_back(strs);
 
@@ -368,21 +373,21 @@ class CCsv {
   }
 
  private:
-  std::string         filename_;
-  bool                loaded_          { false };
-  bool                loadRc_          { false };
-  Fields              header_;
-  Data                data_;
-  Data                meta_;
-  bool                commentHeader_   { true };
-  bool                firstLineHeader_ { false };
-  bool                allowComments_   { true };
-  bool                inMeta_          { false };
-  char                separator_       { ',' };
-  mutable FILE*       fp_              { 0 };
-  mutable std::string str_;
-  mutable int         len_             { 0 };
-  mutable int         pos_             { 0 };
+  std::string         filename_;                  //! csv filename
+  bool                loaded_          { false }; //! is file loaded
+  bool                loadRc_          { false }; //! load return code
+  Fields              header_;                    //! header fields
+  Data                data_;                      //! data rows
+  Data                meta_;                      //! meta data
+  bool                commentHeader_   { true };  //! is comment header
+  bool                firstLineHeader_ { false }; //! is first line header
+  bool                allowComments_   { true };  //! allow comments
+  char                separator_       { ',' };   //! separator
+  bool                inMeta_          { false }; //! parse in meta data
+  mutable FILE*       fp_              { 0 };     //! open file pointer
+  mutable std::string str_;                       //! temp work string
+  mutable int         len_             { 0 };     //! temp work string length
+  mutable int         pos_             { 0 };     //! temp work string position
 };
 
 #endif
