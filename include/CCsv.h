@@ -22,19 +22,21 @@ class CCsv {
   };
 
  public:
-  CCsv(const std::string &filename) :
+  CCsv(const std::string &filename="") :
    filename_(filename) {
   }
 
   const std::string &filename() const { return filename_; }
+  void setFilename(const std::string &filename) { filename_ = filename; }
 
   const Fields &header() const { assert(loaded_); return header_; }
 
   const Data &data() const { assert(loaded_); return data_; }
 
   bool hasMeta() const { return ! meta_.empty(); }
-
   const Data &meta() const { assert(loaded_); return meta_; }
+
+  //---
 
   bool isCommentHeader() const { return commentHeader_; }
   void setCommentHeader(bool b) { commentHeader_ = b; }
@@ -47,6 +49,8 @@ class CCsv {
 
   const char &separator() const { return separator_; }
   void setSeparator(const char &c) { separator_ = c; }
+
+  //---
 
   bool load() {
     if (loaded_)
@@ -181,6 +185,12 @@ class CCsv {
     data = data_;
 
     return true;
+  }
+
+  bool stringToColumns(const std::string &str, Fields &strs) {
+    bool terminated = true;
+
+    return stringToSubFields(str, strs, terminated);
   }
 
  private:

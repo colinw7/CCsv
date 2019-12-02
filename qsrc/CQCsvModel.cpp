@@ -8,6 +8,8 @@ CQCsvModel()
 {
   setObjectName("csvModel");
 
+  setDataType(CQBaseModelDataType::CSV);
+
   // default read only
   setReadOnly(true);
 }
@@ -25,7 +27,7 @@ load(const QString &filename)
 
   csv.setCommentHeader  (isCommentHeader());
   csv.setFirstLineHeader(isFirstLineHeader());
-  csv.setSeparator      (separator());
+  csv.setSeparator      (separator().toLatin1());
 
   if (! csv.load())
     return false;
@@ -234,15 +236,65 @@ load(const QString &filename)
 
         int icolumn = modelColumnNameToInd(name.c_str());
 
-        if (type == "type") {
+        if      (type == "type") {
           CQBaseModelType columnType = nameType(value.c_str());
 
           if (columnType != CQBaseModelType::NONE)
             setColumnType(icolumn, columnType);
         }
+        else if (type == "min") {
+          CQBaseModelType columnType = this->columnType(icolumn);
+
+          if      (columnType == CQBaseModelType::INTEGER) {
+            bool ok;
+
+            int min = QString(value.c_str()).toInt(&ok);
+
+            if (! ok)
+              std::cerr << "Invalid integer column min '" << value << "'\n";
+
+            setColumnMin(icolumn, min);
+          }
+          else if (columnType == CQBaseModelType::REAL) {
+            bool ok;
+
+            double min = QString(value.c_str()).toDouble(&ok);
+
+            if (! ok)
+              std::cerr << "Invalid real column min '" << value << "'\n";
+
+            setColumnMin(icolumn, min);
+          }
+        }
+        else if (type == "max") {
+          CQBaseModelType columnType = this->columnType(icolumn);
+
+          if      (columnType == CQBaseModelType::INTEGER) {
+            bool ok;
+
+            int max = QString(value.c_str()).toInt(&ok);
+
+            if (! ok)
+              std::cerr << "Invalid integer column max '" << value << "'\n";
+
+            setColumnMax(icolumn, max);
+          }
+          else if (columnType == CQBaseModelType::REAL) {
+            bool ok;
+
+            double max = QString(value.c_str()).toDouble(&ok);
+
+            if (! ok)
+              std::cerr << "Invalid real column max '" << value << "'\n";
+
+            setColumnMax(icolumn, max);
+          }
+        }
+        else if (type == "title") {
+          setColumnTitle(icolumn, value.c_str());
+        }
         else {
-          std::cerr << "Invalid column type '" << type << "'\n";
-          continue;
+          setColumnNameValue(icolumn, type.c_str(), value.c_str());
         }
       }
       // handle global data
@@ -331,9 +383,9 @@ save(QAbstractItemModel *model, std::ostream &os)
       QVariant var = model->headerData(c, Qt::Horizontal);
 
       if (output)
-        os << ",";
+        os << separator().toLatin1();
 
-      os << encodeVariant(var);
+      os << encodeVariant(var, separator());
 
       output = true;
     }
@@ -341,7 +393,7 @@ save(QAbstractItemModel *model, std::ostream &os)
     os << "\n";
   }
 
-  //--
+  //---
 
   // output rows
   for (int r = 0; r < nr; ++r) {
@@ -351,7 +403,7 @@ save(QAbstractItemModel *model, std::ostream &os)
     if (isFirstColumnHeader() && hasVHeader) {
       QVariant var = model->headerData(r, Qt::Vertical);
 
-      os << encodeVariant(var);
+      os << encodeVariant(var, separator());
 
       output = true;
     }
@@ -364,9 +416,9 @@ save(QAbstractItemModel *model, std::ostream &os)
       QVariant var = model->data(ind);
 
       if (output)
-        os << ",";
+        os << separator().toLatin1();
 
-      os << encodeVariant(var);
+      os << encodeVariant(var, separator());
 
       output = true;
     }
@@ -377,7 +429,7 @@ save(QAbstractItemModel *model, std::ostream &os)
 
 std::string
 CQCsvModel::
-encodeVariant(const QVariant &var) const
+encodeVariant(const QVariant &var, const QChar &separator)
 {
   std::string str;
 
@@ -394,7 +446,7 @@ encodeVariant(const QVariant &var) const
   else {
     QString qstr = var.toString();
 
-    str = encodeString(qstr).toStdString();
+    str = encodeString(qstr, separator).toStdString();
   }
 
   return str;
@@ -402,11 +454,11 @@ encodeVariant(const QVariant &var) const
 
 QString
 CQCsvModel::
-encodeString(const QString &str) const
+encodeString(const QString &str, const QChar &separator)
 {
   bool quote = false;
 
-  int i = str.indexOf(separator());
+  int i = str.indexOf(separator);
 
   if (i >= 0)
     quote = true;

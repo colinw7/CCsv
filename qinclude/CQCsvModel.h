@@ -4,18 +4,20 @@
 #include <CQDataModel.h>
 
 /*!
- * \bried load csv into data model
+ * \brief load csv into data model
  */
 class CQCsvModel : public CQDataModel {
   Q_OBJECT
 
-  Q_PROPERTY(bool commentHeader     READ isCommentHeader     WRITE setCommentHeader    )
-  Q_PROPERTY(bool firstLineHeader   READ isFirstLineHeader   WRITE setFirstLineHeader  )
-  Q_PROPERTY(bool firstColumnHeader READ isFirstColumnHeader WRITE setFirstColumnHeader)
-  Q_PROPERTY(char separator         READ separator           WRITE setSeparator        )
+  Q_PROPERTY(bool  commentHeader     READ isCommentHeader     WRITE setCommentHeader    )
+  Q_PROPERTY(bool  firstLineHeader   READ isFirstLineHeader   WRITE setFirstLineHeader  )
+  Q_PROPERTY(bool  firstColumnHeader READ isFirstColumnHeader WRITE setFirstColumnHeader)
+  Q_PROPERTY(QChar separator         READ separator           WRITE setSeparator        )
 
  public:
   CQCsvModel();
+
+  //---
 
   //! get/set use first line comment for horizontal header
   bool isCommentHeader() const { return commentHeader_; }
@@ -30,8 +32,8 @@ class CQCsvModel : public CQDataModel {
   void setFirstColumnHeader(bool b) { firstColumnHeader_ = b; }
 
   //! get/set file separator (default ',')
-  const char &separator() const { return separator_; }
-  void setSeparator(const char &v) { separator_ = v; }
+  const QChar &separator() const { return separator_; }
+  void setSeparator(const QChar &v) { separator_ = v; }
 
   //! get/set max rows to read
   int maxRows() const { return maxRows_; }
@@ -43,7 +45,7 @@ class CQCsvModel : public CQDataModel {
 
   //---
 
-  //! load CSV from specified fil
+  //! load CSV from specified file
   bool load(const QString &filename);
 
   //---
@@ -52,21 +54,20 @@ class CQCsvModel : public CQDataModel {
   void save(std::ostream &os);
   void save(QAbstractItemModel *model, std::ostream &os);
 
+  //! encode string (suitable for CSV value)
+  static QString encodeString(const QString &str, const QChar &separator=',');
+
  protected:
   //! encode variant (suitable for CSV value)
-  std::string encodeVariant(const QVariant &var) const;
-
-  //! encode string (suitable for CSV value)
-  QString encodeString(const QString &str) const;
+  static std::string encodeVariant(const QVariant &var, const QChar &separator=',');
 
  protected:
-  QString     filename_;                    //! input filename
-  bool        commentHeader_     { false }; //! first comment line has column names
-  bool        firstLineHeader_   { false }; //! first non-comment line has column names
-  bool        firstColumnHeader_ { false }; //! first column in each line is row name
-  char        separator_         { ',' };   //! field separator
-  int         maxRows_           { -1 };    //! max rows
-  QStringList columns_;                     //! specific columns (and order)
+  bool        commentHeader_     { false }; //!< first comment line has column names
+  bool        firstLineHeader_   { false }; //!< first non-comment line has column names
+  bool        firstColumnHeader_ { false }; //!< first column in each line is row name
+  QChar       separator_         { ',' };   //!< field separator
+  int         maxRows_           { -1 };    //!< max rows
+  QStringList columns_;                     //!< specific columns (and order)
 };
 
 #endif

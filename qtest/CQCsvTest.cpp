@@ -48,9 +48,7 @@ main(int argc, char **argv)
 
   test.show();
 
-  app.exec();
-
-  return 0;
+  return app.exec();
 }
 
 //-----
