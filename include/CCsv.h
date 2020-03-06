@@ -188,9 +188,7 @@ class CCsv {
   }
 
   bool stringToColumns(const std::string &str, Fields &strs) {
-    bool terminated = true;
-
-    return stringToSubFields(str, strs, terminated);
+    return stringToSubFields(str, strs);
   }
 
  private:
@@ -252,23 +250,12 @@ class CCsv {
   bool stringToFields(std::string &line, Fields &strs) {
     std::vector<Fields> strsArray;
 
-    // keep reading lines until propertly terminated
-    bool terminated = true;
+    Fields strs1;
 
-    while (true) {
-      Fields strs1;
+    if (! stringToSubFields(line, strs1))
+      return false;
 
-      if (! stringToSubFields(line, strs1, terminated))
-        return false;
-
-      strsArray.push_back(strs1);
-
-      if (terminated)
-        break;
-
-      if (! readLine(line))
-        break;
-    }
+    strsArray.push_back(strs1);
 
     //---
 
@@ -289,7 +276,10 @@ class CCsv {
 
         int ns1 = strs1.size();
 
-        strs.push_back(ls + strs1[0]);
+        if (ns1 > 0)
+          strs.push_back(ls + strs1[0]);
+        else
+          strs.push_back(ls);
 
         for (int j = 1; j < ns1; ++j)
           strs.push_back(strs1[j]);
@@ -303,7 +293,7 @@ class CCsv {
     return true;
   }
 
-  bool stringToSubFields(const std::string &str, Fields &strs, bool &terminated) {
+  bool stringToSubFields(const std::string &str, Fields &strs) {
     static char dquote = '\"';
 
     str_ = str;
@@ -314,14 +304,14 @@ class CCsv {
       std::string str1;
 
       while (pos_ < len_ && str_[pos_] != separator_) {
-        if (! terminated || str_[pos_] == dquote) {
-          if (terminated)
-            ++pos_;
+        if (str_[pos_] == dquote) {
+          // skip double quote
+          ++pos_;
 
-          // skip string (might not be terminated)
+          // skip string
           std::string pstr;
 
-          terminated = parseString(pstr);
+          parseString(pstr);
 
           str1 += pstr;
         }
@@ -349,30 +339,39 @@ class CCsv {
     return true;
   }
 
-  bool parseString(std::string &str) {
+  void parseString(std::string &str) {
     static char dquote = '\"';
 
     bool terminated = false;
 
-    while (pos_ < len_) {
-      if (str_[pos_] == dquote) {
-        ++pos_;
-
-        if (pos_ < len_ && str_[pos_] == dquote) {
-          str += dquote;
-
+    while (! terminated) {
+      while (pos_ < len_) {
+        if (str_[pos_] == dquote) {
           ++pos_;
-        }
-        else {
-          terminated = true;
-          break;
-        }
-      }
-      else
-        str += str_[pos_++];
-    }
 
-    return terminated;
+          if (pos_ < len_ && str_[pos_] == dquote) {
+            str += dquote;
+
+            ++pos_;
+          }
+          else {
+            terminated = true;
+            break;
+          }
+        }
+        else
+          str += str_[pos_++];
+      }
+
+      if (! terminated) {
+        if (readLine(str_)) {
+          len_ = str_.size();
+          pos_ = 0;
+        }
+        else
+          terminated = true;
+      }
+    }
   }
 
   void skipSpace(const std::string &str, int &i) {
