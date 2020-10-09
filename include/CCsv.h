@@ -267,25 +267,25 @@ class CCsv {
     //---
 
     for (int i = 0; i < na; ++i) {
-      const Fields &strs1 = strsArray[i];
+      const Fields &strs2 = strsArray[i];
 
       if (i > 0) {
         std::string ls = strs.back() + '\n';
 
         strs.pop_back();
 
-        int ns1 = strs1.size();
+        int ns1 = strs2.size();
 
         if (ns1 > 0)
-          strs.push_back(ls + strs1[0]);
+          strs.push_back(ls + strs2[0]);
         else
           strs.push_back(ls);
 
         for (int j = 1; j < ns1; ++j)
-          strs.push_back(strs1[j]);
+          strs.push_back(strs2[j]);
       }
       else {
-        for (const auto &s : strs1)
+        for (const auto &s : strs2)
           strs.push_back(s);
       }
     }
