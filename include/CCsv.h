@@ -11,9 +11,9 @@
  */
 class CCsv {
  public:
-  typedef std::vector<int>         Inds;
-  typedef std::vector<std::string> Fields;
-  typedef std::vector<Fields>      Data;
+  using Inds   = std::vector<int>;
+  using Fields = std::vector<std::string>;
+  using Data   = std::vector<Fields>;
 
   enum CommentType {
     NONE,
@@ -22,31 +22,39 @@ class CCsv {
   };
 
  public:
-  CCsv(const std::string &filename="") :
+  explicit CCsv(const std::string &filename="") :
    filename_(filename) {
   }
 
+  //! get/set filename
   const std::string &filename() const { return filename_; }
   void setFilename(const std::string &filename) { filename_ = filename; }
 
+  //! get header fields
   const Fields &header() const { assert(loaded_); return header_; }
 
+  //! get row data
   const Data &data() const { assert(loaded_); return data_; }
 
+  //! get meta data
   bool hasMeta() const { return ! meta_.empty(); }
   const Data &meta() const { assert(loaded_); return meta_; }
 
   //---
 
+  //! get/set has comment header
   bool isCommentHeader() const { return commentHeader_; }
   void setCommentHeader(bool b) { commentHeader_ = b; }
 
+  //! get/set first line is header
   bool isFirstLineHeader() const { return firstLineHeader_; }
   void setFirstLineHeader(bool b) { firstLineHeader_ = b; }
 
+  //! get/set allow comment lines
   bool isAllowComments() const { return allowComments_; }
   void setAllowComments(bool b) { allowComments_ = b; }
 
+  //! get/set separator (default comma)
   const char &separator() const { return separator_; }
   void setSeparator(const char &c) { separator_ = c; }
 
@@ -203,9 +211,10 @@ class CCsv {
     if (fp_)
       fclose(fp_);
 
-    fp_ = 0;
+    fp_ = nullptr;
   }
 
+  // get is command and check for meta start/end
   bool isComment(const std::string &line, std::string &comment, CommentType &type) {
     int i = 0;
 
@@ -228,6 +237,7 @@ class CCsv {
     return true;
   }
 
+  // read line from file
   bool readLine(std::string &line) {
     line = "";
 
@@ -247,6 +257,7 @@ class CCsv {
     return true;
   }
 
+  // convert string to separated fields
   bool stringToFields(std::string &line, Fields &strs) {
     std::vector<Fields> strsArray;
 
@@ -293,6 +304,7 @@ class CCsv {
     return true;
   }
 
+  // convert string to separated fields
   bool stringToSubFields(const std::string &str, Fields &strs) {
     static char dquote = '\"';
 
@@ -339,6 +351,7 @@ class CCsv {
     return true;
   }
 
+  // parse string (will read extra lines)
   void parseString(std::string &str) {
     static char dquote = '\"';
 
@@ -374,6 +387,7 @@ class CCsv {
     }
   }
 
+  // skip spaces
   void skipSpace(const std::string &str, int &i) {
     int len = str.size();
 
