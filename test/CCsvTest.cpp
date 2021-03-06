@@ -12,6 +12,7 @@ main(int argc, char **argv)
   bool        allowComments   = true;
   char        separator       = ',';
   bool        quote           = false;
+  bool        html            = false;
 
   for (auto i = 1; i < argc; ++i) {
     if (argv[i][0] == '-') {
@@ -35,6 +36,8 @@ main(int argc, char **argv)
       }
       else if (arg == "quote")
         quote = true;
+      else if (arg == "html")
+        html = true;
       else
         std::cerr << "Unhandled option: " << arg << std::endl;
     }
@@ -44,7 +47,7 @@ main(int argc, char **argv)
 
   if (filename == "") {
     std::cerr << "CCsvTest [-columns <inds>] [-comment_header|-first_line_header] "
-                 "[-allow_comments|-no_allow_comments] [-separator <char>] [-quote] "
+                 "[-allow_comments|-no_allow_comments] [-separator <char>] [-quote] [-html]"
                  "<filename>" << std::endl;
     exit(1);
   }
@@ -78,36 +81,69 @@ main(int argc, char **argv)
 
   //---
 
+  if (html) {
+    std::cout << "<html>\n";
+    std::cout << "<head>\n";
+    std::cout << "<link href=\"table.css\" rel=\"stylesheet\" type=\"text/css\"/>\n";
+    std::cout << "</head>\n";
+    std::cout << "<body>\n";
+
+    std::cout << "<div style=\"overflow-x:auto;\">\n";
+    std::cout << "<table class=\"styled-table\">\n";
+  }
+
   const CCsv::Fields &header = csv.header();
 
   if (! header.empty()) {
     bool first = true;
 
-    std::string headerStr;
+    if (html) {
+      std::cout << "<thead>";
+      std::cout << "<tr>";
 
-    for (const auto &field : header) {
-      if (! first)
-        headerStr += "|";
+      for (const auto &field : header) {
+        if (! first)
+          std::cout << "</th>";
 
-      if (quote)
-        headerStr += "\"" + field + "\"";
-      else
-        headerStr += field;
+        std::cout << "<th>" << field;
 
-      first = false;
+        first = false;
+      }
+
+      std::cout << "</th></tr>\n";
+      std::cout << "</thead>";
     }
+    else {
+      std::string headerStr;
 
-    std::cout << headerStr << "\n";
+      for (const auto &field : header) {
+        if (! first)
+          headerStr += "|";
 
-    int headerLen = headerStr.size();
+        if (quote)
+          headerStr += "\"" + field + "\"";
+        else
+          headerStr += field;
 
-    for (int i = 0; i < headerLen; ++i)
-      std::cout << "-";
+        first = false;
+      }
 
-    std::cout << "\n";
+      std::cout << headerStr << "\n";
+
+      int headerLen = headerStr.size();
+
+      for (int i = 0; i < headerLen; ++i)
+        std::cout << "-";
+
+      std::cout << "\n";
+    }
   }
 
   //---
+
+  if (html) {
+    std::cout << "<tbody>";
+  }
 
   CCsv::Data fieldsArray;
 
@@ -116,29 +152,21 @@ main(int argc, char **argv)
   for (const auto &fields : fieldsArray) {
     bool first = true;
 
-    for (const auto &field : fields) {
-      if (! first)
-        std::cout << "|";
+    if (html) {
+      std::cout << "<tr>";
 
-      if (quote)
-        std::cout << "\"" << field << "\"";
-      else
-        std::cout << field;
+      for (const auto &field : fields) {
+        if (! first)
+          std::cout << "</td>";
 
-      first = false;
+        std::cout << "<td>" << field;
+
+        first = false;
+      }
+
+      std::cout << "</td></tr>\n";
     }
-
-    std::cout << "\n";
-  }
-
-  //---
-
-  if (csv.hasMeta()) {
-    std::cout << "-- META --\n";
-
-    for (const auto &fields : csv.meta()) {
-      bool first = true;
-
+    else {
       for (const auto &field : fields) {
         if (! first)
           std::cout << "|";
@@ -155,7 +183,47 @@ main(int argc, char **argv)
     }
   }
 
+  if (html) {
+    std::cout << "</tbody>";
+  }
+
   //---
+
+  if (csv.hasMeta()) {
+    if (html) {
+    }
+    else {
+      std::cout << "-- META --\n";
+
+      for (const auto &fields : csv.meta()) {
+        bool first = true;
+
+        for (const auto &field : fields) {
+          if (! first)
+            std::cout << "|";
+
+          if (quote)
+            std::cout << "\"" << field << "\"";
+          else
+            std::cout << field;
+
+          first = false;
+        }
+
+        std::cout << "\n";
+      }
+    }
+  }
+
+  //---
+
+  if (html) {
+    std::cout << "</div>\n";
+    std::cout << "</table>\n";
+
+    std::cout << "</body>\n";
+    std::cout << "</html>\n";
+  }
 
   exit(0);
 }
