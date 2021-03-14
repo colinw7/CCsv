@@ -12,6 +12,7 @@ main(int argc, char **argv)
   bool        allowComments   = true;
   char        separator       = ',';
   bool        quote           = false;
+  bool        tcl             = false;
   bool        html            = false;
 
   for (auto i = 1; i < argc; ++i) {
@@ -38,6 +39,8 @@ main(int argc, char **argv)
         quote = true;
       else if (arg == "html")
         html = true;
+      else if (arg == "tcl")
+        tcl = true;
       else
         std::cerr << "Unhandled option: " << arg << std::endl;
     }
@@ -97,7 +100,7 @@ main(int argc, char **argv)
   if (! header.empty()) {
     bool first = true;
 
-    if (html) {
+    if      (html) {
       std::cout << "<thead>";
       std::cout << "<tr>";
 
@@ -112,6 +115,20 @@ main(int argc, char **argv)
 
       std::cout << "</th></tr>\n";
       std::cout << "</thead>";
+    }
+    else if (tcl) {
+      std::cout << "{";
+
+      for (const auto &field : header) {
+        if (! first)
+          std::cout << " ";
+
+        std::cout << "{" + field + "}";
+
+        first = false;
+      }
+
+      std::cout << "}\n";
     }
     else {
       std::string headerStr;
@@ -152,7 +169,7 @@ main(int argc, char **argv)
   for (const auto &fields : fieldsArray) {
     bool first = true;
 
-    if (html) {
+    if      (html) {
       std::cout << "<tr>";
 
       for (const auto &field : fields) {
@@ -165,6 +182,20 @@ main(int argc, char **argv)
       }
 
       std::cout << "</td></tr>\n";
+    }
+    else if (tcl) {
+      std::cout << "{";
+
+      for (const auto &field : fields) {
+        if (! first)
+          std::cout << " ";
+
+        std::cout << "{" << field << "}";
+
+        first = false;
+      }
+
+      std::cout << "}\n";
     }
     else {
       for (const auto &field : fields) {
@@ -190,7 +221,9 @@ main(int argc, char **argv)
   //---
 
   if (csv.hasMeta()) {
-    if (html) {
+    if      (html) {
+    }
+    else if (tcl) {
     }
     else {
       std::cout << "-- META --\n";
