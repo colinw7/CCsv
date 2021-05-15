@@ -1,5 +1,6 @@
 #include <CCsv.h>
 #include <CStrUtil.h>
+#include <CHRTimer.h>
 #include <iostream>
 
 int
@@ -14,6 +15,7 @@ main(int argc, char **argv)
   bool        quote           = false;
   bool        tcl             = false;
   bool        html            = false;
+  bool        quiet           = false;
 
   for (auto i = 1; i < argc; ++i) {
     if (argv[i][0] == '-') {
@@ -41,6 +43,8 @@ main(int argc, char **argv)
         html = true;
       else if (arg == "tcl")
         tcl = true;
+      else if (arg == "quiet")
+        quiet = true;
       else
         std::cerr << "Unhandled option: " << arg << std::endl;
     }
@@ -77,10 +81,17 @@ main(int argc, char **argv)
 
   //---
 
+  {
+  CScopeTimer timer("CCsv::load");
+
   if (! csv.load()) {
     std::cerr << "Failed to load '" << filename << "'\n";
     exit(1);
   }
+  }
+
+  if (quiet)
+    exit(0);
 
   //---
 

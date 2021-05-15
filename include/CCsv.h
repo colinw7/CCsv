@@ -104,7 +104,7 @@ class CCsv {
 
           // TODO: skip first line
 
-          meta_.push_back(strs);
+          meta_.push_back(std::move(strs));
 
           continue;
         }
@@ -115,7 +115,7 @@ class CCsv {
             if (! stringToFields(comment, strs))
               continue;
 
-            header_ = strs;
+            header_ = std::move(strs);
 
             commentHeader   = false;
             firstLineHeader = false;
@@ -139,7 +139,7 @@ class CCsv {
       //---
 
       if (firstLineHeader) {
-        header_ = strs;
+        header_ = std::move(strs);
 
         commentHeader   = false;
         firstLineHeader = false;
@@ -149,7 +149,7 @@ class CCsv {
 
       //---
 
-      data_.push_back(strs);
+      data_.push_back(std::move(strs));
     }
 
     close();
@@ -180,7 +180,7 @@ class CCsv {
         fields1 = fields;
       }
 
-      data.push_back(fields1);
+      data.push_back(std::move(fields1));
     }
 
     return true;
@@ -266,7 +266,7 @@ class CCsv {
     if (! stringToSubFields(line, strs1))
       return false;
 
-    strsArray.push_back(strs1);
+    strsArray.push_back(std::move(strs1));
 
     //---
 
@@ -290,7 +290,7 @@ class CCsv {
         if (ns1 > 0)
           strs.push_back(ls + strs2[0]);
         else
-          strs.push_back(ls);
+          strs.push_back(std::move(ls));
 
         for (int j = 1; j < ns1; ++j)
           strs.push_back(strs2[j]);
@@ -325,7 +325,7 @@ class CCsv {
 
           parseString(pstr);
 
-          str1 += pstr;
+          str1 += std::move(pstr);
         }
         else {
           // skip to field separator
@@ -345,7 +345,7 @@ class CCsv {
         ++pos_;
 
       // add to return list
-      strs.push_back(str1);
+      strs.push_back(std::move(str1));
     }
 
     return true;
