@@ -2,6 +2,7 @@
 #include <CCsv.h>
 
 #include <CQModelUtil.h>
+#include <CQStrParse.h>
 
 #include <QColor>
 #include <QBuffer>
@@ -163,10 +164,10 @@ load(const QString &filename)
   //---
 
   // process meta data
-  const CCsv::Data &meta = csv.meta();
+  meta_ = csv.meta();
 
-  if (! meta.empty()) {
-    for (const auto &fields : meta) {
+  if (! meta_.empty()) {
+    for (const auto &fields : meta_) {
       int numFields = fields.size();
 
       // handle column data:
@@ -193,7 +194,7 @@ load(const QString &filename)
             setColumnType(icolumn, columnType);
         }
         else if (type == "min") {
-          CQBaseModelType columnType = this->columnType(icolumn);
+          auto columnType = this->columnType(icolumn);
 
           if      (columnType == CQBaseModelType::INTEGER) {
             bool ok;
@@ -250,18 +251,16 @@ load(const QString &filename)
       // handle cell data:
       //   cell <cell_index> <role> <value>
       else if (fields[0] == "cell") {
-        QString indStr, roleStr, value;
-
-        if (numFields == 4) {
-          indStr  = fields[1].c_str();
-          roleStr = fields[2].c_str();
-          value   = fields[3].c_str();
-        }
-        else {
+        if (numFields != 4) {
           std::cerr << "Invalid cell data\n";
           continue;
         }
 
+        auto indStr  = QString::fromStdString(fields[1]);
+        auto roleStr = QString::fromStdString(fields[2]);
+        auto value   = QString::fromStdString(fields[3]);
+
+        // get role
         int role = CQModelUtil::nameToRole(roleStr);
 
         if (role < 0) {
@@ -269,35 +268,48 @@ load(const QString &filename)
           continue;
         }
 
+        // get cell index
         int row = -1, col = -1;
 
-        auto indStrs = indStr.split(":");
-
-        if (indStrs.length() == 2) {
-          bool ok;
-          row = indStrs[0].toInt(&ok); if (! ok) row = -1;
-          col = indStrs[1].toInt(&ok); if (! ok) col = -1;
-        }
-
-        if (row < 0 || col < 0) {
+        if (! CQModelUtil::stringToRowCol(indStr, row, col)) {
           std::cerr << "Invalid index '" << fields[1] << "'\n";
           continue;
         }
 
-        auto valueStrs = value.split(":");
-
+        // get value(s)
+        // <value> | <type>:<value>
         QVariant var;
 
-        if (valueStrs.length() == 2) {
-          int type = QMetaType::type(valueStrs[0].toLatin1().constData());
+        CQStrParse parse(value);
+
+        parse.skipSpace();
+
+        int i1 = parse.getPos();
+
+        while (! parse.eof() && parse.isAlnum())
+          parse.skipChar();
+
+        int i2 = parse.getPos();
+
+        parse.skipSpace();
+
+        if (parse.isChar(':')) {
+          parse.skipChar();
+
+          parse.skipSpace();
+
+          auto lhs = value.mid(i1, i2 - i1);
+          auto rhs = value.mid(parse.getPos());
+
+          int type = QMetaType::type(lhs.toLatin1().constData());
 
           if (type < 0) {
-            std::cerr << "Invalid type '" << valueStrs[0].toStdString() << "'\n";
+            std::cerr << "Invalid type '" << lhs.toStdString() << "'\n";
             continue;
           }
 
           if (type == QMetaType::QColor) {
-            var = QColor(valueStrs[1]);
+            var = QColor(rhs);
           }
           else {
             QByteArray ba;
@@ -309,7 +321,7 @@ load(const QString &filename)
             QDataStream out(&obuffer);
             out.setVersion(dataStreamVersion());
 
-            out << valueStrs[1];
+            out << rhs;
 
             // create user type data from data stream using registered DataStream methods
             QBuffer ibuffer(&ba);
@@ -322,14 +334,14 @@ load(const QString &filename)
 
             // const cast is safe since we operate on a newly constructed variant
             if (! QMetaType::load(in, type, const_cast<void *>(var.constData()))) {
-              std::cerr << "Invalid data '" << valueStrs[1].toStdString() <<
-                           "' for type '" << valueStrs[0].toStdString() << "'\n";
+              std::cerr << "Invalid data '" << rhs.toStdString() <<
+                           "' for type '" << lhs.toStdString() << "'\n";
               continue;
             }
           }
         }
         else {
-          var = valueStrs[1];
+          var = value;
         }
 
         if (row < 0 || col < 0) {
@@ -381,23 +393,49 @@ void
 CQCsvModel::
 save(std::ostream &os)
 {
-  save(this, os);
+  save(this, os, configData_, meta_);
 }
 
 void
 CQCsvModel::
-save(QAbstractItemModel *model, std::ostream &os)
+save(QAbstractItemModel *model, std::ostream &os,
+     const ConfigData &configData, const MetaData &meta)
 {
   int nc = model->columnCount();
   int nr = model->rowCount();
 
   //---
 
+  if (meta.size()) {
+    os << "#META_DATA\n";
+
+    for (const auto &values : meta) {
+      os << "# ";
+
+      int i = 0;
+
+      for (const auto &v : values) {
+        if (i > 0)
+          os << ",";
+
+        os << v;
+
+        ++i;
+      }
+
+      os << "\n";
+    }
+
+    os << "#END_META_DATA\n";
+  }
+
+  //---
+
   bool hasHHeader = false;
 
-  if (isFirstLineHeader()) {
+  if (configData.firstLineHeader) {
     for (int c = 0; c < nc; ++c) {
-      QVariant var = model->headerData(c, Qt::Horizontal);
+      auto var = model->headerData(c, Qt::Horizontal, configData.headerRole);
 
       if (var.isValid()) {
         hasHHeader = true;
@@ -408,9 +446,9 @@ save(QAbstractItemModel *model, std::ostream &os)
 
   bool hasVHeader = false;
 
-  if (isFirstColumnHeader()) {
+  if (configData.firstColumnHeader) {
     for (int r = 0; r < nr; ++r) {
-      QVariant var = model->headerData(r, Qt::Vertical);
+      auto var = model->headerData(r, Qt::Vertical, configData.headerRole);
 
       if (var.isValid()) {
         hasVHeader = true;
@@ -422,20 +460,20 @@ save(QAbstractItemModel *model, std::ostream &os)
   //---
 
   // output horizontal header on first line if enabled and model has horizontal header data
-  if (isFirstLineHeader() && hasHHeader) {
+  if (configData.firstLineHeader && hasHHeader) {
     bool output = false;
 
     // if vertical header then add empty cell
-    if (isFirstColumnHeader() && hasVHeader)
+    if (configData.firstColumnHeader && hasVHeader)
       output = true;
 
     for (int c = 0; c < nc; ++c) {
-      QVariant var = model->headerData(c, Qt::Horizontal);
+      auto var = model->headerData(c, Qt::Horizontal, configData.headerRole);
 
       if (output)
-        os << separator().toLatin1();
+        os << configData.separator.toLatin1();
 
-      os << encodeVariant(var, separator());
+      os << encodeVariant(var, configData.separator);
 
       output = true;
     }
@@ -450,10 +488,10 @@ save(QAbstractItemModel *model, std::ostream &os)
     bool output = false;
 
     // output vertical header value if enabled and model has vertical header data
-    if (isFirstColumnHeader() && hasVHeader) {
-      QVariant var = model->headerData(r, Qt::Vertical);
+    if (configData.firstColumnHeader && hasVHeader) {
+      auto var = model->headerData(r, Qt::Vertical, configData.headerRole);
 
-      os << encodeVariant(var, separator());
+      os << encodeVariant(var, configData.separator);
 
       output = true;
     }
@@ -461,14 +499,14 @@ save(QAbstractItemModel *model, std::ostream &os)
     //---
 
     for (int c = 0; c < nc; ++c) {
-      QModelIndex ind = model->index(r, c);
+      auto ind = model->index(r, c);
 
-      QVariant var = model->data(ind);
+      auto var = model->data(ind, configData.dataRole);
 
       if (output)
-        os << separator().toLatin1();
+        os << configData.separator.toLatin1();
 
-      os << encodeVariant(var, separator());
+      os << encodeVariant(var, configData.separator);
 
       output = true;
     }
@@ -494,7 +532,7 @@ encodeVariant(const QVariant &var, const QChar &separator)
     str = std::to_string(i);
   }
   else {
-    QString qstr = var.toString();
+    auto qstr = var.toString();
 
     str = encodeString(qstr, separator).toStdString();
   }
@@ -529,7 +567,8 @@ encodeString(const QString &str, const QChar &separator)
     int pos = str.indexOf('\"');
 
     if (pos >= 0) {
-      QString str1 = str;
+      auto str1 = str;
+
       QString str2;
 
       while (pos >= 0) {
