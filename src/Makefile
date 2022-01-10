@@ -8,7 +8,12 @@ INC_DIR = ../include
 OBJ_DIR = ../obj
 LIB_DIR = ../lib
 
-all: $(LIB_DIR)/libCCsv.a
+all: dirs $(LIB_DIR)/libCCsv.a
+
+dirs:
+	@if [ ! -e ../obj ]; then mkdir ../obj; fi
+	@if [ ! -e ../lib ]; then mkdir ../lib; fi
+	@if [ ! -e ../bin ]; then mkdir ../bin; fi
 
 SRC = \
 CCsv.cpp
