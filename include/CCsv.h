@@ -86,7 +86,7 @@ class CCsv {
   void parseString(std::string &str) const;
 
   // skip spaces
-  void skipSpace(const std::string &str, int &i) const;
+  void skipSpace(const std::string &str, uint &i) const;
 
  private:
   std::string         filename_;                  //! csv filename
@@ -102,8 +102,8 @@ class CCsv {
   bool                inMeta_          { false }; //! parse in meta data
   mutable FILE*       fp_              { 0 };     //! open file pointer
   mutable std::string str_;                       //! temp work string
-  mutable int         len_             { 0 };     //! temp work string length
-  mutable int         pos_             { 0 };     //! temp work string position
+  mutable uint        len_             { 0 };     //! temp work string length
+  mutable uint        pos_             { 0 };     //! temp work string position
 };
 
 #endif

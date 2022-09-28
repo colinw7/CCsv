@@ -158,9 +158,9 @@ main(int argc, char **argv)
 
       std::cout << headerStr << "\n";
 
-      int headerLen = headerStr.size();
+      auto headerLen = headerStr.size();
 
-      for (int i = 0; i < headerLen; ++i)
+      for (uint i = 0; i < headerLen; ++i)
         std::cout << "-";
 
       std::cout << "\n";

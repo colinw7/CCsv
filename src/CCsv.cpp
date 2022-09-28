@@ -125,7 +125,7 @@ getFields(const Inds &inds, Data &data) const
         int ind = inds[i];
 
         if (ind >= 1 && ind <= int(fields.size()))
-          fields1.push_back(fields[ind - 1]);
+          fields1.push_back(fields[uint(ind - 1)]);
         else
           fields1.push_back("");
       }
@@ -185,7 +185,7 @@ bool
 CCsv::
 isComment(const std::string &line, std::string &comment, CommentType &type) const
 {
-  int i = 0;
+  uint i = 0;
 
   skipSpace(line, i);
 
@@ -220,7 +220,7 @@ readLine(std::string &line) const
     return false;
 
   while (! feof(fp_) && c != '\n') {
-    line += c;
+    line += char(c);
 
     c = fgetc(fp_);
   }
@@ -243,14 +243,14 @@ stringToFields(std::string &line, Fields &strs) const
 
   //---
 
-  int na = strsArray.size();
+  auto na = strsArray.size();
 
   if (na == 0)
     return false;
 
   //---
 
-  for (int i = 0; i < na; ++i) {
+  for (uint i = 0; i < na; ++i) {
     const Fields &strs2 = strsArray[i];
 
     if (i > 0) {
@@ -258,14 +258,14 @@ stringToFields(std::string &line, Fields &strs) const
 
       strs.pop_back();
 
-      int ns1 = strs2.size();
+      auto ns1 = strs2.size();
 
       if (ns1 > 0)
         strs.push_back(ls + strs2[0]);
       else
         strs.push_back(std::move(ls));
 
-      for (int j = 1; j < ns1; ++j)
+      for (uint j = 1; j < ns1; ++j)
         strs.push_back(strs2[j]);
     }
     else {
@@ -284,7 +284,7 @@ stringToSubFields(const std::string &str, Fields &strs) const
   static char dquote = '\"';
 
   str_ = str;
-  len_ = str_.size();
+  len_ = uint(str_.size());
   pos_ = 0;
 
   while (pos_ < len_) {
@@ -304,7 +304,7 @@ stringToSubFields(const std::string &str, Fields &strs) const
       }
       else {
         // skip to field separator
-        int j = pos_;
+        uint j = pos_;
 
         while (pos_ < len_ && str_[pos_] != separator_)
           ++pos_;
@@ -355,7 +355,7 @@ parseString(std::string &str) const
 
     if (! terminated) {
       if (readLine(str_)) {
-        len_ = str_.size();
+        len_ = uint(str_.size());
         pos_ = 0;
       }
       else
@@ -366,9 +366,9 @@ parseString(std::string &str) const
 
 void
 CCsv::
-skipSpace(const std::string &str, int &i) const
+skipSpace(const std::string &str, uint &i) const
 {
-  int len = str.size();
+  auto len = str.size();
 
   while (i < len && isspace(str[i]))
     ++i;
