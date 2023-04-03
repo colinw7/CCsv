@@ -56,7 +56,7 @@ main(int argc, char **argv)
 CQCsvTest::
 CQCsvTest()
 {
-  QVBoxLayout *layout = new QVBoxLayout(this);
+  auto *layout = new QVBoxLayout(this);
 
   table_ = new CQCsvTable;
 
