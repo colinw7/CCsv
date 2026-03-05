@@ -22,6 +22,7 @@ CPPFLAGS = \
 -I. \
 -I../../CStrUtil/include \
 -I../../CUtil/include \
+-I../../COS/include \
 
 LFLAGS = \
 -L$(LIB_DIR) \
@@ -37,4 +38,4 @@ clean:
 	$(CC) -c $< -o $(OBJ_DIR)/$*.o $(CPPFLAGS)
 
 $(BIN_DIR)/CCsvTest: $(OBJS)
-	$(CC) $(LDEBUG) -o $(BIN_DIR)/CCsvTest $(OBJS) $(LFLAGS) -lCStrUtil
+	$(CC) $(LDEBUG) -o $(BIN_DIR)/CCsvTest $(OBJS) $(LFLAGS) -lCCsv -lCStrUtil
